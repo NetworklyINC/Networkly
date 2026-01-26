@@ -41,45 +41,7 @@ try {
 // Use case to model mapping defaults - Using latest Gemini models
 // Default: gemini-2.5-flash-lite (most cost-effective)
 // Heavy tasks: gemini-3-flash-preview (latest high-quality)
-const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallbacks: string[] }> = {
-  'chat': {
-    // gemini-2.5-flash-lite - most cost-effective with good quality
-    primary: 'gemini-2.5-flash-lite',
-    fallbacks: ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-pro'],
-  },
-  'analysis': {
-    primary: 'gemini-3-flash-preview',
-    fallbacks: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-lite'],
-  },
-  'code-generation': {
-    primary: 'gemini-3-flash-preview',
-    fallbacks: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-lite'],
-  },
-  'summarization': {
-    primary: 'gemini-2.5-flash-lite',
-    fallbacks: ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-pro'],
-  },
-  'extraction': {
-    primary: 'gemini-2.5-flash-lite',
-    fallbacks: ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-pro'],
-  },
-  'vision': {
-    primary: 'gemini-2.5-flash-lite',
-    fallbacks: ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-pro'],
-  },
-  'fast-response': {
-    primary: 'gemini-2.5-flash-lite',
-    fallbacks: ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3-flash-preview'],
-  },
-  'high-quality': {
-    primary: 'gemini-3-flash-preview',
-    fallbacks: ['gemini-3-pro-preview', 'gemini-2.5-pro', 'gemini-2.5-flash'],
-  },
-  'cost-effective': {
-    primary: 'gemini-2.5-flash-lite',
-    fallbacks: ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3-flash-preview'],
-  },
-}
+// Use case to model mapping is managed in model-configs.ts
 
 export class AIModelManager {
   private geminiProvider: GeminiProvider | null = null
