@@ -31,6 +31,46 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Query parameter required" }, { status: 400 });
     }
 
+    const EC_SCRAPER_URL = process.env.EC_SCRAPER_URL;
+    const EC_SCRAPER_TOKEN = process.env.EC_SCRAPER_TOKEN;
+
+    // Use Railway API if configured (Production/Remote)
+    if (EC_SCRAPER_URL && EC_SCRAPER_TOKEN) {
+        console.log(`[Discovery] Proxying to Railway: ${EC_SCRAPER_URL}`);
+
+        try {
+            const apiUrl = new URL(`${EC_SCRAPER_URL}/discover/stream`);
+            apiUrl.searchParams.append("query", query);
+            if (userProfileId) apiUrl.searchParams.append("userProfileId", userProfileId);
+
+            const response = await fetch(apiUrl.toString(), {
+                headers: {
+                    "Authorization": `Bearer ${EC_SCRAPER_TOKEN}`,
+                    "Accept": "text/event-stream",
+                },
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`[Discovery] Railway API error: ${response.status} ${errorText}`);
+                throw new Error(`Scraper API returned ${response.status}`);
+            }
+
+            // Return the stream directly to the client
+            return new NextResponse(response.body, {
+                headers: {
+                    "Content-Type": "text/event-stream",
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",
+                },
+            });
+        } catch (error) {
+            console.error("[Discovery] Failed to proxy to Railway, falling back to local...", error);
+            // Fall back to local spawn if proxy fails
+        }
+    }
+
     // Create a TransformStream for SSE
     const stream = new TransformStream();
     const writer = stream.writable.getWriter();
@@ -73,7 +113,7 @@ export async function GET(req: NextRequest) {
 
     // Build Python command arguments
     const pythonArgs = ["-u", scriptPath, query];
-    
+
     // Add user profile ID if provided for personalized discovery
     if (userProfileId) {
         pythonArgs.push("--user-profile-id", userProfileId);
@@ -125,10 +165,10 @@ export async function GET(req: NextRequest) {
         if (!processEnded) {
             console.log("[Discovery] Process timeout reached, killing Python process");
             // Notify client of timeout before cleanup
-            const timeoutEvent = `data: ${JSON.stringify({ 
-                type: "error", 
+            const timeoutEvent = `data: ${JSON.stringify({
+                type: "error",
                 message: "Discovery timed out after 2 minutes",
-                source: "timeout" 
+                source: "timeout"
             })}\n\n`;
             await safeWrite(timeoutEvent);
             cleanup();
@@ -142,7 +182,7 @@ export async function GET(req: NextRequest) {
         for (const line of lines) {
             const trimmed = line.trim();
             if (!trimmed || writerClosed) continue;
-            
+
             // Only forward valid JSON to prevent client-side parse errors
             if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
                 try {
@@ -165,20 +205,20 @@ export async function GET(req: NextRequest) {
     pythonProcess.stderr.on("data", async (data) => {
         const message = data.toString().trim();
         console.error(`[Discovery Error] ${message}`);
-        
+
         // Forward significant errors to the client
         if (message && !writerClosed) {
             // Filter out noisy debug messages that start with common prefixes
-            const isImportantError = !message.startsWith("[DEBUG]") && 
-                                      !message.startsWith("[INFO]") &&
-                                      !message.includes("DeprecationWarning") &&
-                                      !message.includes("FutureWarning");
-            
+            const isImportantError = !message.startsWith("[DEBUG]") &&
+                !message.startsWith("[INFO]") &&
+                !message.includes("DeprecationWarning") &&
+                !message.includes("FutureWarning");
+
             if (isImportantError) {
-                const errorEvent = `data: ${JSON.stringify({ 
-                    type: "error", 
+                const errorEvent = `data: ${JSON.stringify({
+                    type: "error",
                     message: message.slice(0, 200),
-                    source: "stderr" 
+                    source: "stderr"
                 })}\n\n`;
                 await safeWrite(errorEvent);
             }
