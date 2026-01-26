@@ -4,19 +4,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
-import {
-  Home,
-  User,
-  Briefcase,
-  FolderKanban,
-  MessageSquare,
-  Calendar,
-  BarChart3,
-  Settings,
-  Sparkles,
-  ChevronLeft,
-  ChevronRight
-} from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useSupabaseUser } from "@/hooks/use-supabase-user"
 import { Button } from "@/components/ui/button"
@@ -25,14 +12,14 @@ import { useTheme } from "next-themes"
 import { useHasMounted } from "@/hooks/use-has-mounted"
 
 const navigation = [
-  { name: "Home", href: "/dashboard", icon: Home },
-  { name: "Profile", href: "/profile", icon: User },
-  { name: "Opportunities", href: "/opportunities", icon: Briefcase },
-  { name: "Projects", href: "/projects", icon: FolderKanban },
-  { name: "AI Assistant", href: "/assistant", icon: Sparkles },
-  { name: "Network", href: "/network", icon: MessageSquare },
-  { name: "Events", href: "/events", icon: Calendar },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Home", href: "/dashboard", icon: "bx bx-home-alt-2" },
+  { name: "Profile", href: "/profile", icon: "bx bx-user" },
+  { name: "Opportunities", href: "/opportunities", icon: "bx bx-briefcase-alt-2" },
+  { name: "Projects", href: "/projects", icon: "bx bx-folder" },
+  { name: "AI Assistant", href: "/assistant", icon: "bx bx-sparkles" },
+  { name: "Network", href: "/network", icon: "bx bx-group" },
+  { name: "Events", href: "/events", icon: "bx bx-calendar" },
+  { name: "Analytics", href: "/analytics", icon: "bx bx-bar-chart-alt-2" },
 ]
 
 interface SidebarProps {
@@ -55,10 +42,6 @@ export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
   const userAvatar = (user?.user_metadata?.avatar_url as string | undefined) || "/placeholder.svg"
   const userInitials = userName.split(" ").map(n => n[0]).join("").toUpperCase()
 
-  // Full logo for expanded sidebar
-  const logoSrc = hasMounted && theme === 'dark' ? '/networkly-logo-dark.png' : '/networkly-logo.png'
-  // Mini logo for collapsed sidebar
-  const logoMiniSrc = hasMounted && theme === 'dark' ? '/networkly-logo-mini.png' : '/networkly-logo-mini-dark.png'
 
   return (
     <aside
@@ -67,30 +50,26 @@ export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
         isCollapsed ? "w-[80px]" : "w-64"
       )}
     >
-      <div className={cn("flex h-16 items-center border-b border-border px-6", isCollapsed ? "justify-center px-0" : "gap-2")}>
-        {!isCollapsed ? (
+      <div className={cn("flex h-16 items-center px-6", isCollapsed ? "justify-center px-0" : "gap-3")}>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg overflow-hidden">
           <Image
-            src={logoSrc}
+            src="/icon.svg"
             alt="Networkly"
-            width={120}
-            height={40}
-            className="object-contain"
+            width={32}
+            height={32}
+            className="h-full w-full"
             priority
           />
-        ) : (
-          <Image
-            src={logoMiniSrc}
-            alt="Networkly"
-            width={40}
-            height={40}
-            className="object-contain"
-            priority
-          />
+        </div>
+        {!isCollapsed && (
+          <span className="text-xl font-bold tracking-tight text-foreground">
+            Networkly
+          </span>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        <nav className="flex flex-col gap-1">
+      <div className="flex-1 overflow-y-auto px-4 py-20 flex flex-col justify-center">
+        <nav className="flex flex-col gap-3">
           {navigation.map((item) => {
             const isActive = pathname === item.href
             const LinkContent = (
@@ -104,7 +83,7 @@ export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
                   isCollapsed && "justify-center px-0"
                 )}
               >
-                <item.icon className="h-5 w-5 shrink-0" />
+                <i className={cn(item.icon, "text-xl shrink-0")} />
                 {!isCollapsed && <span>{item.name}</span>}
               </Link>
             )
@@ -135,7 +114,7 @@ export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
             className="w-full flex items-center justify-center h-8 hover:bg-muted"
             onClick={toggleCollapse}
           >
-            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {isCollapsed ? <i className='bx bx-chevron-right text-lg' /> : <i className='bx bx-chevron-left text-lg' />}
           </Button>
         )}
 
@@ -146,7 +125,7 @@ export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
             isCollapsed && "justify-center px-0"
           )}
         >
-          <Settings className="h-5 w-5 shrink-0" />
+          <i className="bx bx-cog text-xl shrink-0" />
           {!isCollapsed && "Settings"}
         </Link>
 
