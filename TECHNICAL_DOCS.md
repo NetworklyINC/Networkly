@@ -23,9 +23,9 @@
 | **Framework** | Next.js 16.0.10 (App Router, Turbopack) |
 | **Language** | TypeScript 5.x (strict mode) |
 | **Styling** | TailwindCSS 4 + shadcn/ui components |
-| **Authentication** | Clerk (with Prisma sync) |
-| **Database** | PostgreSQL via Prisma ORM 5.22.0 |
-| **AI Chat** | Multi-provider (Groq, OpenRouter) via custom AI SDK |
+| **Authentication** | Supabase Auth (with Postgres sync) |
+| **Database** | PostgreSQL via Prisma ORM 5.22.0 (Neon) |
+| **AI Chat** | Google Gemini via custom AI SDK |
 | **Package Manager** | pnpm |
 
 ---
@@ -98,66 +98,40 @@ import { AIProviderError, RateLimitError, ModelNotFoundError } from '@/lib/ai'
 | `getHealthyProviders()` | Get list of healthy provider names |
 | `shutdown()` | Stop health checks and cleanup |
 
-### Groq Models (All FREE)
-
-#### Tier 1: Top Performers (Production Ready)
-
-| Model | Best For | Context | Speed |
-|-------|----------|---------|-------|
-| `openai/gpt-oss-120b` | Best overall (90% MMLU) | 131K | 500 t/s |
-| `llama-3.3-70b-versatile` | Best production (86% MMLU) | 131K | 280 t/s |
-
-#### Tier 2: Strong Mid-Range (Production Ready)
-
-| Model | Best For | Context | Speed |
-|-------|----------|---------|-------|
-| `llama-3.1-8b-instant` | Fastest/Value (560 t/s) | 131K | 560 t/s |
-| `openai/gpt-oss-20b` | Smaller GPT | 131K | 1000 t/s |
-
-#### Tier 3: Preview Models (May Be Discontinued)
-
-| Model | Best For | Context | Speed |
-|-------|----------|---------|-------|
-| `meta-llama/llama-4-maverick-17b-128e-instruct` | Creative content | 131K | 600 t/s |
-| `meta-llama/llama-4-scout-17b-16e-instruct` | Quality/speed balance | 131K | 750 t/s |
-| `qwen/qwen3-32b` | Code generation | 131K | 400 t/s |
-| `moonshotai/kimi-k2-instruct-0905` | Long context (262K) | 262K | 200 t/s |
-
-#### Tier 4: Specialized Models
-
-| Model | Purpose |
-|-------|---------|
-| `groq/compound` | Agentic tool use (450 t/s) |
-| `meta-llama/llama-guard-4-12b` | Content safety (1200 t/s) |
-| `whisper-large-v3` | Speech-to-text |
-| `whisper-large-v3-turbo` | Fast speech-to-text |
+### Gemini Models
+ 
+ | Model | Best For | Context | Speed |
+ |-------|----------|---------|-------|
+ | `gemini-1.5-pro` | Best overall reasoning | 1M | Standard |
+ | `gemini-1.5-flash` | Fastest/Value | 1M | Fast |
+ | `gemini-1.5-flash-lite` | Most cost-effective | 1M | Ultra-fast |
 
 ### Use Case Model Mapping
 
 | Use Case | Primary Model | Fallbacks |
 |----------|---------------|-----------|
-| `chat` | openai/gpt-oss-120b | llama-3.3-70b, 8b-instant |
-| `analysis` | kimi-k2-instruct-0905 | qwen3-32b, gpt-oss-120b |
-| `code-generation` | qwen/qwen3-32b | gpt-oss-120b, llama-3.3 |
-| `summarization` | llama-3.1-8b-instant | gpt-oss-20b, llama-4-scout |
-| `extraction` | groq/compound | llama-3.3, qwen3-32b |
-| `fast-response` | llama-3.1-8b-instant | gpt-oss-20b, compound |
-| `high-quality` | llama-4-maverick | gpt-oss-120b, kimi-k2 |
-| `cost-effective` | llama-3.1-8b-instant | gpt-oss-20b, llama-3.3 |
+| `chat` | gemini-1.5-pro | gemini-1.5-flash |
+| `analysis` | gemini-1.5-pro | gemini-1.5-flash |
+| `code-generation` | gemini-1.5-pro | gemini-1.5-flash |
+| `summarization` | gemini-1.5-flash | gemini-1.5-flash-lite |
+| `extraction` | gemini-1.5-pro | gemini-1.5-flash |
+| `fast-response` | gemini-1.5-flash | gemini-1.5-flash-lite |
+| `high-quality` | gemini-1.5-pro | gemini-1.5-flash |
+| `cost-effective` | gemini-1.5-flash-lite | gemini-1.5-flash |
 
 ### Agent Model Recommendations
 
 | Agent Role | Model | Reason |
 |------------|-------|--------|
-| **Planner** | `openai/gpt-oss-120b` | Best reasoning (90% MMLU) |
-| **Coder** | `qwen/qwen3-32b` | Strong coding performance |
-| **Researcher** | `moonshotai/kimi-k2-instruct-0905` | 262K context for long docs |
-| **Router** | `llama-3.1-8b-instant` | Fastest (560 t/s) |
-| **Tool User** | `groq/compound` | Built for agentic tool use |
-| **Writer** | `meta-llama/llama-4-maverick-17b` | Creative excellence |
-| **Extractor** | `groq/compound` | Structured extraction |
-| **Summarizer** | `llama-3.1-8b-instant` | Fast and effective |
-| **Moderator** | `meta-llama/llama-guard-4-12b` | Content safety |
+| **Planner** | `gemini-1.5-pro` | Best reasoning |
+| **Coder** | `gemini-1.5-pro` | Strong coding performance |
+| **Researcher** | `gemini-1.5-pro` | 1M context for long docs |
+| **Router** | `gemini-1.5-flash` | Fastest |
+| **Tool User** | `gemini-1.5-pro` | Good for agentic tool use |
+| **Writer** | `gemini-1.5-pro` | Creative excellence |
+| **Extractor** | `gemini-1.5-pro` | Structured extraction |
+| **Summarizer** | `gemini-1.5-flash` | Fast and effective |
+| **Moderator** | `gemini-1.5-pro` | Content safety |
 
 ### Usage Examples
 
@@ -190,11 +164,7 @@ for await (const chunk of ai.stream({
 ```typescript
 import { setActiveConfig, getActiveConfig } from '@/lib/ai'
 
-setActiveConfig('groq')   // Use Groq (free)
 setActiveConfig('gemini') // Use Gemini
-
-const config = getActiveConfig()
-console.log(config.displayName) // "Groq (Free)"
 ```
 
 #### Error Handling
@@ -242,40 +212,18 @@ const { complete, isLoading, result, error } = useAICompletion({
 ---
 
 ## Authentication Setup
-
-### Clerk Configuration
-
-**ClerkProvider Props** (in `app/layout.tsx`):
-```tsx
-<ClerkProvider
-  signInUrl="/login"
-  signUpUrl="/signup"
-  signInFallbackRedirectUrl="/dashboard"
-  signUpFallbackRedirectUrl="/dashboard"
->
-```
-
-**Route Structure:**
-- `/login/[[...sign-in]]/page.tsx` - Catch-all route for Clerk SignIn
-- `/signup/[[...sign-up]]/page.tsx` - Catch-all route for Clerk SignUp
-
-**Middleware** (`middleware.ts`):
-```typescript
-const isPublicRoute = createRouteMatcher([
-    "/",
-    "/login(.*)",
-    "/signup(.*)",
-    "/api/webhooks(.*)",
-])
-
-export default clerkMiddleware(async (auth, request) => {
-    if (!isPublicRoute(request)) {
-        await auth.protect()
-    }
-})
-```
-
-**Auto-Sync:** When a user authenticates with Clerk but doesn't exist in the database, they are automatically synced via `syncUserFromClerk()` in the dashboard page.
+ 
+ ### Supabase Configuration
+ 
+ **Supabase URL & Key** (in `.env`):
+ ```env
+ NEXT_PUBLIC_SUPABASE_URL="https://..."
+ NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbG..."
+ ```
+ 
+ **Auth Flow:** Users are managed via Supabase Auth. The `createClient()` helper in `lib/supabase/` handles server-side sessions.
+ 
+ **Auto-Sync:** User profile data is synced to the `User` table upon first login or profile update.
 
 ---
 
@@ -320,7 +268,7 @@ All server actions are located in `/app/actions/` and use the `"use server"` dir
 | `getCurrentUser()` | Get authenticated user's profile |
 | `getUserAnalytics()` | Get profile views, network growth |
 | `updateUserProfile(data)` | Update user profile fields |
-| `syncUserFromClerk(clerkUser)` | Upsert user from Clerk |
+| `syncUserFromSupabase(user)` | Sync user profile from Supabase |
 
 ### Connections Actions (`connections.ts`)
 
@@ -365,7 +313,7 @@ All server actions are located in `/app/actions/` and use the `"use server"` dir
 
 | Feature | Location |
 |---------|----------|
-| User Authentication | Clerk + auto-sync |
+| User Authentication | Supabase Auth |
 | Dashboard | `/dashboard` |
 | Profile Management | `/profile` |
 | Network/Connections | `/network` |
@@ -404,13 +352,13 @@ Required in `.env` or `.env.local`:
 # Database
 DATABASE_URL="postgresql://..."
 
-# Clerk Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_..."
-CLERK_SECRET_KEY="sk_..."
-
-# AI Providers (at least one required)
-GROQ_API_KEY="gsk_..."              # Free tier - recommended
-OPENROUTER_API_KEY="sk-or-..."      # Optional - for premium models
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL="https://..."
+NEXT_PUBLIC_SUPABASE_ANON_KEY="pk_..."
+SUPABASE_SERVICE_ROLE_KEY="sk_..."
+ 
+# AI Providers
+GEMINI_API_KEY="AIza..."
 
 # AI Settings (optional)
 AI_TIMEOUT=30000                     # Request timeout (ms)

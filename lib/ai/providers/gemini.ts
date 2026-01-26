@@ -5,8 +5,8 @@
  * Supports latest Gemini 2.5 models and legacy models.
  */
 
-import { google } from '@ai-sdk/google'
-import { generateText, streamText, type CoreMessage } from 'ai'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { generateText, streamText, jsonSchema } from 'ai'
 import type {
   ProviderName,
   ProviderConfig,
@@ -15,95 +15,52 @@ import type {
   CompletionResult,
   StreamChunk,
   HealthCheckResult,
+  ToolDefinition,
 } from '../types'
 import { AIProviderError, AuthenticationError } from '../types'
 import { logger } from '../utils/logger'
 import { getCostTracker } from '../utils/cost-tracker'
 
+// Message type for AI SDK
+type AIMessage = {
+  role: 'system' | 'user' | 'assistant'
+  content: string
+}
+
 // Gemini model definitions with pricing (Updated January 2026)
 // https://ai.google.dev/gemini-api/docs/models/gemini
-// Using latest models: gemini-3-flash-preview for heavy tasks, gemini-2.5-flash-lite for cost-effective defaults
 const GEMINI_MODELS: Record<string, Omit<ModelInfo, 'id' | 'provider'>> = {
-  // =========================================================================
-  // GEMINI 3 - LATEST PREVIEW MODELS (January 2026)
-  // =========================================================================
-  
-  'gemini-3-pro-preview': {
-    name: 'Gemini 3 Pro Preview',
-    contextLength: 1048576,
-    maxOutputTokens: 65536,
-    capabilities: ['chat', 'vision', 'function-calling', 'json-mode', 'streaming'],
-    costPer1kInputTokens: 0.00125,   // $1.25/1M input (estimated, similar to 2.5-pro)
-    costPer1kOutputTokens: 0.01,      // $10/1M output (estimated)
-    supportsStreaming: true,
-    supportsVision: true,
-    supportsFunctionCalling: true,
-    tier: 'premium',
-  },
-  
-  'gemini-3-flash-preview': {
-    name: 'Gemini 3 Flash Preview',
-    contextLength: 1048576,
-    maxOutputTokens: 65536,
-    capabilities: ['chat', 'vision', 'function-calling', 'json-mode', 'streaming'],
-    costPer1kInputTokens: 0.00015,   // $0.15/1M input (estimated, similar to 2.5-flash)
-    costPer1kOutputTokens: 0.0006,    // $0.60/1M output (estimated)
-    supportsStreaming: true,
-    supportsVision: true,
-    supportsFunctionCalling: true,
-    tier: 'premium',
-  },
-  
-  // =========================================================================
-  // GEMINI 2.5 - STABLE PRODUCTION MODELS (January 2026)
-  // =========================================================================
-  
-  'gemini-2.5-pro': {
-    name: 'Gemini 2.5 Pro',
-    contextLength: 1048576,
-    maxOutputTokens: 65536,
-    capabilities: ['chat', 'vision', 'function-calling', 'json-mode', 'streaming'],
-    costPer1kInputTokens: 0.00125,   // $1.25/1M input
-    costPer1kOutputTokens: 0.01,      // $10/1M output
-    supportsStreaming: true,
-    supportsVision: true,
-    supportsFunctionCalling: true,
-    tier: 'premium',
-  },
-  
-  'gemini-2.5-flash': {
-    name: 'Gemini 2.5 Flash',
-    contextLength: 1048576,
-    maxOutputTokens: 65536,
-    capabilities: ['chat', 'vision', 'function-calling', 'json-mode', 'streaming'],
-    costPer1kInputTokens: 0.00015,   // $0.15/1M input
-    costPer1kOutputTokens: 0.0006,    // $0.60/1M output
-    supportsStreaming: true,
-    supportsVision: true,
-    supportsFunctionCalling: true,
-    tier: 'standard',
-  },
-  
-  'gemini-2.5-flash-lite': {
-    name: 'Gemini 2.5 Flash Lite',
-    contextLength: 1048576,
-    maxOutputTokens: 65536,
-    capabilities: ['chat', 'vision', 'function-calling', 'json-mode', 'streaming'],
-    costPer1kInputTokens: 0.000075,  // $0.075/1M input (most cost-effective)
-    costPer1kOutputTokens: 0.0003,    // $0.30/1M output
-    supportsStreaming: true,
-    supportsVision: true,
-    supportsFunctionCalling: true,
-    tier: 'standard',
-  },
-
   'gemini-2.0-flash': {
     name: 'Gemini 2.0 Flash',
     contextLength: 1048576,
     maxOutputTokens: 8192,
     capabilities: ['chat', 'vision', 'function-calling', 'json-mode', 'streaming'],
-    costPer1kInputTokens: 0.0001,    // $0.10/1M input
-    costPer1kOutputTokens: 0.0004,    // $0.40/1M output
+    costPer1kInputTokens: 0.0001,
+    costPer1kOutputTokens: 0.0004,
+    supportsStreaming: true,
+    supportsVision: true,
+    supportsFunctionCalling: true,
+    tier: 'standard',
+  },
+  'gemini-1.5-pro': {
+    name: 'Gemini 1.5 Pro',
+    contextLength: 1048576,
+    maxOutputTokens: 8192,
+    capabilities: ['chat', 'vision', 'function-calling', 'json-mode', 'streaming'],
+    costPer1kInputTokens: 0.00125,
+    costPer1kOutputTokens: 0.01,
+    supportsStreaming: true,
+    supportsVision: true,
+    supportsFunctionCalling: true,
+    tier: 'premium',
+  },
+  'gemini-1.5-flash': {
+    name: 'Gemini 1.5 Flash',
+    contextLength: 1048576,
+    maxOutputTokens: 8192,
+    capabilities: ['chat', 'vision', 'function-calling', 'json-mode', 'streaming'],
+    costPer1kInputTokens: 0.00015,
+    costPer1kOutputTokens: 0.0006,
     supportsStreaming: true,
     supportsVision: true,
     supportsFunctionCalling: true,
@@ -111,12 +68,57 @@ const GEMINI_MODELS: Record<string, Omit<ModelInfo, 'id' | 'provider'>> = {
   },
 }
 
-// Default to cost-effective 2.5 Flash Lite for balanced cost/performance
-const DEFAULT_MODEL = 'gemini-2.5-flash-lite'
+// Default to stable 1.5 Flash for balanced cost/performance
+const DEFAULT_MODEL = 'gemini-2.0-flash'
+
+// Map AI SDK finish reasons to our internal format
+function mapFinishReason(reason: string | undefined): 'stop' | 'length' | 'function_call' | 'tool_calls' | 'content_filter' {
+  switch (reason) {
+    case 'stop':
+      return 'stop'
+    case 'length':
+      return 'length'
+    case 'tool-calls':
+      return 'tool_calls'
+    case 'content-filter':
+      return 'content_filter'
+    default:
+      return 'stop'
+  }
+}
+
+/**
+ * Convert OpenAI-style tool definitions to AI SDK format
+ * AI SDK expects tools as an object with tool names as keys
+ */
+function convertToolsToAISDK(tools: ToolDefinition[]): Record<string, { description: string; inputSchema: ReturnType<typeof jsonSchema> }> {
+  const result: Record<string, { description: string; inputSchema: ReturnType<typeof jsonSchema> }> = {}
+  for (const tool of tools) {
+    result[tool.function.name] = {
+      description: tool.function.description,
+      inputSchema: jsonSchema(tool.function.parameters as Record<string, unknown>),
+    }
+  }
+  return result
+}
+
+/**
+ * Convert AI SDK toolChoice to the format expected by generateText/streamText
+ */
+function convertToolChoice(toolChoice: CompletionOptions['toolChoice']): 'auto' | 'none' | 'required' | { type: 'tool'; toolName: string } | undefined {
+  if (!toolChoice) return undefined
+  if (toolChoice === 'auto') return 'auto'
+  if (toolChoice === 'none') return 'none'
+  if (typeof toolChoice === 'object' && toolChoice.type === 'function') {
+    return { type: 'tool', toolName: toolChoice.function.name }
+  }
+  return 'auto'
+}
 
 export class GeminiProvider {
   private config: ProviderConfig
   private models: Map<string, ModelInfo> = new Map()
+  private googleProvider: ReturnType<typeof createGoogleGenerativeAI>
 
   constructor(config: Partial<ProviderConfig> & { apiKey: string }) {
     const { apiKey, ...restConfig } = config
@@ -130,6 +132,11 @@ export class GeminiProvider {
       maxRetries: restConfig.maxRetries ?? 3,
       ...restConfig,
     }
+
+    // Create Google provider instance with API key
+    this.googleProvider = createGoogleGenerativeAI({
+      apiKey: this.config.apiKey,
+    })
 
     this.initializeModels()
   }
@@ -174,28 +181,48 @@ export class GeminiProvider {
     logger.request('gemini', modelId, {
       messageCount: options.messages.length,
       temperature: options.temperature,
+      hasTools: !!options.tools?.length,
     })
 
     try {
       const model = this.createModel(modelId)
-      const contents = this.convertMessages(options.messages)
+      const messages = this.convertMessages(options.messages)
+
+      // Convert tools if provided
+      const tools = options.tools?.length ? convertToolsToAISDK(options.tools) : undefined
+      const toolChoice = options.toolChoice ? convertToolChoice(options.toolChoice) : undefined
 
       const result = await this.withRetry(() => generateText({
         model,
-        messages: contents,
+        messages,
         temperature: options.temperature,
-        maxTokens: options.maxTokens,
+        maxOutputTokens: options.maxTokens,
         topP: options.topP,
         stopSequences: options.stop,
-        responseFormat: options.responseFormat?.type === 'json_object' ? { type: 'json' } : undefined,
-      }))
+        tools,
+        toolChoice,
+      }) as any)
 
-      const text = result.text
+      const text = result.text || ''
       const latencyMs = Date.now() - startTime
 
-      const promptTokens = result.usage?.promptTokens || this.estimateTokens(options.messages)
-      const completionTokens = result.usage?.completionTokens || Math.ceil(text.length / 4)
+      // AI SDK uses inputTokens/outputTokens
+      const promptTokens = result.usage?.inputTokens || this.estimateTokens(options.messages)
+      const completionTokens = result.usage?.outputTokens || Math.ceil(text.length / 4)
       const totalTokens = promptTokens + completionTokens
+
+      // Convert AI SDK tool calls to OpenAI format
+      const toolCalls = result.toolCalls?.length ? (result.toolCalls as any[]).map(tc => ({
+        id: tc.toolCallId,
+        type: 'function' as const,
+        function: {
+          name: tc.toolName,
+          arguments: JSON.stringify(tc.input),
+        }
+      })) : undefined
+
+      // Determine finish reason based on tool calls
+      const finishReason = toolCalls?.length ? 'tool_calls' : mapFinishReason(result.finishReason)
 
       // Record cost
       const costTracker = getCostTracker()
@@ -209,7 +236,8 @@ export class GeminiProvider {
 
       logger.response('gemini', modelId, latencyMs, {
         tokens: totalTokens,
-        finishReason: 'stop',
+        finishReason,
+        toolCalls: toolCalls?.length || 0,
       })
 
       return {
@@ -217,12 +245,13 @@ export class GeminiProvider {
         provider: 'gemini',
         model: modelId,
         content: text,
-        finishReason: result.finishReason || 'stop',
+        finishReason,
         usage: {
           promptTokens,
           completionTokens,
           totalTokens,
         },
+        toolCalls,
         latencyMs,
       }
     } catch (error) {
@@ -250,20 +279,25 @@ export class GeminiProvider {
     const modelId = options.model || this.config.defaultModel
     const startTime = Date.now()
 
-    logger.request('gemini', modelId, { streaming: true })
+    logger.request('gemini', modelId, { streaming: true, hasTools: !!options.tools?.length })
 
     try {
       const model = this.createModel(modelId)
-      const contents = this.convertMessages(options.messages)
+      const messages = this.convertMessages(options.messages)
 
-      const result = await this.withRetry(() => streamText({
+      const tools = options.tools?.length ? convertToolsToAISDK(options.tools) : undefined
+      const toolChoice = options.toolChoice ? convertToolChoice(options.toolChoice) : undefined
+
+      const result = streamText({
         model,
-        messages: contents,
+        messages,
         temperature: options.temperature,
-        maxTokens: options.maxTokens,
+        maxOutputTokens: options.maxTokens,
         topP: options.topP,
         stopSequences: options.stop,
-      }))
+        tools,
+        toolChoice,
+      })
 
       let isFirst = true
       let totalContent = ''
@@ -285,8 +319,8 @@ export class GeminiProvider {
       // Final chunk
       const latencyMs = Date.now() - startTime
       const usage = await result.usage
-      const completionTokens = usage?.completionTokens || Math.ceil(totalContent.length / 4)
-      promptTokens = usage?.promptTokens || promptTokens
+      const completionTokens = usage?.outputTokens || Math.ceil(totalContent.length / 4)
+      promptTokens = usage?.inputTokens || promptTokens
 
       // Record cost
       const costTracker = getCostTracker()
@@ -368,22 +402,22 @@ export class GeminiProvider {
   }
 
   /**
-   * Convert OpenAI-style messages to Gemini format
+   * Convert OpenAI-style messages to AI SDK format
    */
-  private convertMessages(messages: CompletionOptions['messages']): CoreMessage[] {
+  private convertMessages(messages: CompletionOptions['messages']): AIMessage[] {
     return messages.map((msg) => {
       if (msg.role === 'assistant') {
-        return { role: 'assistant', content: msg.content }
+        return { role: 'assistant' as const, content: msg.content }
       }
       if (msg.role === 'system') {
-        return { role: 'system', content: msg.content }
+        return { role: 'system' as const, content: msg.content }
       }
-      return { role: 'user', content: msg.content }
+      return { role: 'user' as const, content: msg.content }
     })
   }
 
   private createModel(modelId: string) {
-    return google(modelId, { apiKey: this.config.apiKey })
+    return this.googleProvider(modelId)
   }
 
   private isRateLimitError(error: unknown): boolean {

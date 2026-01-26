@@ -18,8 +18,7 @@ Networkly is an AI-powered professional networking platform designed to help stu
 - **Styling:** Tailwind CSS 4
 - **UI Components:** Radix UI + shadcn/ui
 - **Database:** PostgreSQL with Prisma ORM
-- **Authentication:** Clerk
-- **AI Integration:** Vercel AI SDK + Groq
+- **AI Integration:** Vercel AI SDK + Google Gemini
 
 ## Getting Started
 
@@ -31,8 +30,7 @@ See the production home server guide: `docs/LINUX_HOME_SERVER.md`.
 
 - **[Bun](https://bun.sh)** v1.0 or higher
 - **PostgreSQL database** (see options below)
-- **Clerk account** (free at [clerk.com](https://clerk.com))
-- **Groq API key** (free at [console.groq.com](https://console.groq.com))
+- **Google Gemini API key** (free at [aistudio.google.com](https://aistudio.google.com))
 
 ### Quick Start
 
@@ -68,14 +66,9 @@ See the production home server guide: `docs/LINUX_HOME_SERVER.md`.
      - [Supabase](https://supabase.com) 
      - [Railway](https://railway.app)
    
-   - **CLERK_SECRET_KEY & NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:**
-     1. Create a Clerk account at [clerk.com](https://clerk.com)
-     2. Create a new application
-     3. Go to API Keys and copy both keys
-
-   - **GROQ_API_KEY:**
-     1. Create an account at [console.groq.com](https://console.groq.com)
-     2. Go to API Keys and create a new key
+   - **GEMINI_API_KEY:**
+     1. Create an account at [aistudio.google.com](https://aistudio.google.com)
+     2. Create a new API key
 
 5. **Set up the database:**
 
@@ -105,10 +98,7 @@ See the production home server guide: `docs/LINUX_HOME_SERVER.md`.
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `CLERK_SECRET_KEY` | ✅ | Clerk backend API key |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | ✅ | Clerk frontend key |
-| `GROQ_API_KEY` | ✅ | Groq AI API key |
-| `OPENROUTER_API_KEY` | ❌ | Optional: OpenRouter API key |
+| `GEMINI_API_KEY` | ✅ | Google Gemini API key |
 | `NEXT_PUBLIC_APP_URL` | ❌ | App URL (defaults to localhost:3000) |
 
 ## Available Scripts
@@ -130,8 +120,8 @@ See the production home server guide: `docs/LINUX_HOME_SERVER.md`.
 ### "Cannot find module '@prisma/client'"
 Run `bun run db:generate` to generate the Prisma client.
 
-### "CLERK_SECRET_KEY is missing"
-Make sure you've copied `.env.example` to `.env` and filled in your Clerk keys.
+### "GEMINI_API_KEY is missing"
+Make sure you've filled in your Gemini key in the `.env` file.
 
 ### "Connection refused" or database errors
 1. Check that your DATABASE_URL is correct
@@ -139,7 +129,7 @@ Make sure you've copied `.env.example` to `.env` and filled in your Clerk keys.
 3. Run `bun run db:push` to create the database tables
 
 ### "Invalid API key" errors
-Double-check your GROQ_API_KEY in the `.env` file.
+Double-check your GEMINI_API_KEY in the `.env` file.
 
 ## Contributing
 

@@ -26,9 +26,6 @@ import type {
 } from './types'
 
 import { AIProviderError, AIManagerConfigSchema } from './types'
-import { BaseProvider } from './providers/base'
-import { OpenRouterProvider } from './providers/openrouter'
-
 import { GeminiProvider } from './providers/gemini'
 import { logger } from './utils/logger'
 import { DEFAULT_USE_CASE_MODELS } from './model-configs'
@@ -38,54 +35,15 @@ try {
   const loggerModule = require('./query-logger')
   logQueryFn = loggerModule.logQuery
 } catch (e) {
-  logQueryFn = async () => {}
+  logQueryFn = async () => { }
 }
 
 // Use case to model mapping defaults - Using latest Gemini models
 // Default: gemini-2.5-flash-lite (most cost-effective)
 // Heavy tasks: gemini-3-flash-preview (latest high-quality)
-const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallbacks: string[] }> = {
-  'chat': {
-    // gemini-2.5-flash-lite - most cost-effective with good quality
-    primary: 'gemini-2.5-flash-lite',
-    fallbacks: ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-pro'],
-  },
-  'analysis': {
-    primary: 'gemini-3-flash-preview',
-    fallbacks: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-lite'],
-  },
-  'code-generation': {
-    primary: 'gemini-3-flash-preview',
-    fallbacks: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-lite'],
-  },
-  'summarization': {
-    primary: 'gemini-2.5-flash-lite',
-    fallbacks: ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-pro'],
-  },
-  'extraction': {
-    primary: 'gemini-2.5-flash-lite',
-    fallbacks: ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-pro'],
-  },
-  'vision': {
-    primary: 'gemini-2.5-flash-lite',
-    fallbacks: ['gemini-2.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-pro'],
-  },
-  'fast-response': {
-    primary: 'gemini-2.5-flash-lite',
-    fallbacks: ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3-flash-preview'],
-  },
-  'high-quality': {
-    primary: 'gemini-3-flash-preview',
-    fallbacks: ['gemini-3-pro-preview', 'gemini-2.5-pro', 'gemini-2.5-flash'],
-  },
-  'cost-effective': {
-    primary: 'gemini-2.5-flash-lite',
-    fallbacks: ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-3-flash-preview'],
-  },
-}
+// Use case to model mapping is managed in model-configs.ts
 
-  export class AIModelManager {
-  private providers: Map<ProviderName, BaseProvider> = new Map()
+export class AIModelManager {
   private geminiProvider: GeminiProvider | null = null
   private useCaseConfigs: Map<UseCase, UseCaseConfig> = new Map()
   private healthCheckInterval?: ReturnType<typeof setInterval>
@@ -119,13 +77,7 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
     for (const providerConfig of validatedConfig.providers) {
       if (!providerConfig.enabled) continue
 
-      let provider: BaseProvider
-
       switch (providerConfig.name) {
-        case 'openrouter':
-          provider = new OpenRouterProvider(providerConfig)
-          break
-
         case 'gemini':
           // Gemini uses a different provider class
           this.geminiProvider = new GeminiProvider(providerConfig)
@@ -146,21 +98,6 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
           logger.warn('AIManager', `Unknown provider: ${providerConfig.name}`)
           continue
       }
-
-      this.providers.set(providerConfig.name, provider)
-      this.providerStatuses.set(providerConfig.name, {
-        name: providerConfig.name,
-        healthy: true,
-        lastCheck: new Date(),
-        consecutiveFailures: 0,
-        averageLatencyMs: 0,
-        modelsHealthy: provider.getModels().length,
-        modelsUnhealthy: 0,
-      })
-
-      logger.info('AIManager', `Initialized provider: ${providerConfig.name}`, {
-        models: provider.getModels().length,
-      })
     }
 
     // Configure use cases
@@ -177,7 +114,7 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
 
     this.initialized = true
     logger.info('AIManager', 'Initialization complete', {
-      providers: this.providers.size,
+      providers: this.geminiProvider ? 1 : 0,
       useCases: this.useCaseConfigs.size,
     })
   }
@@ -188,24 +125,8 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
   initializeFromEnv(): void {
     const providers: AIManagerConfig['providers'] = []
 
-    // OpenRouter
-    const openrouterKey = process.env.OPENROUTER_API_KEY
-    if (openrouterKey) {
-      providers.push({
-        name: 'openrouter',
-        apiKey: openrouterKey,
-        baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1/chat/completions',
-        defaultModel: process.env.OPENROUTER_DEFAULT_MODEL || 'openai/gpt-4o',
-        enabled: true,
-        timeout: parseInt(process.env.AI_TIMEOUT || '30000', 10),
-        maxRetries: parseInt(process.env.AI_MAX_RETRIES || '3', 10),
-      })
-    }
-
-
-
     // Gemini (Google AI)
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY
+    const geminiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
     if (geminiKey) {
       providers.push({
         name: 'gemini',
@@ -219,7 +140,7 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
     }
 
     if (providers.length === 0) {
-      throw new Error('No AI providers configured. Set OPENROUTER_API_KEY or GEMINI_API_KEY.')
+      throw new Error('No AI providers configured. Set GOOGLE_GENERATIVE_AI_API_KEY or GEMINI_API_KEY.')
     }
 
     this.initialize({
@@ -238,9 +159,6 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
    */
   getAllModels(): ModelInfo[] {
     const models: ModelInfo[] = []
-    for (const provider of this.providers.values()) {
-      models.push(...provider.getModels())
-    }
     // Include Gemini models
     if (this.geminiProvider) {
       models.push(...this.geminiProvider.getModels())
@@ -255,8 +173,7 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
     if (providerName === 'gemini' && this.geminiProvider) {
       return this.geminiProvider.getModels()
     }
-    const provider = this.providers.get(providerName)
-    return provider ? provider.getModels() : []
+    return []
   }
 
   /**
@@ -267,8 +184,7 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
     if (providerName === 'gemini' && this.geminiProvider) {
       return this.geminiProvider.getModel(modelId)
     }
-    const provider = this.providers.get(providerName)
-    return provider?.getModel(modelId)
+    return undefined
   }
 
   /**
@@ -281,8 +197,8 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
       if (fullModelId.startsWith('gemini-')) {
         return ['gemini', fullModelId]
       }
-      // Default to openrouter for models without explicit provider
-      return ['openrouter', fullModelId]
+      // Default to gemini for models without explicit provider
+      return ['gemini', fullModelId]
     }
     return [
       fullModelId.substring(0, colonIndex) as ProviderName,
@@ -321,15 +237,8 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
             model: modelId,
           })
         } else {
-          const provider = this.providers.get(providerName)
-          if (!provider) {
-            logger.warn('AIManager', `Provider not found: ${providerName}`)
-            continue
-          }
-          result = await provider.complete({
-            ...options,
-            model: modelId,
-          })
+          logger.warn('AIManager', `Provider not found or unsupported: ${providerName}`)
+          continue
         }
 
         if (status) {
@@ -346,13 +255,13 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
             success: true,
             latencyMs: Date.now() - startTime,
             tokensUsed: result.usage?.totalTokens
-          }).catch(() => {})
+          }).catch(() => { })
         }
 
         return result
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error))
-        
+
         if (status) {
           status.consecutiveFailures++
           if (status.consecutiveFailures >= 3) {
@@ -376,7 +285,7 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
         success: false,
         error: lastError?.message || 'All models failed',
         latencyMs: Date.now() - startTime
-      }).catch(() => {})
+      }).catch(() => { })
     }
 
     throw lastError || new Error('All models failed')
@@ -408,15 +317,8 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
             yield chunk
           }
         } else {
-          const provider = this.providers.get(providerName)
-          if (!provider) continue
-
-          for await (const chunk of provider.stream({
-            ...options,
-            model: modelId,
-          })) {
-            yield chunk
-          }
+          logger.warn('AIManager', `Provider not found or unsupported for streaming: ${providerName}`)
+          continue
         }
 
         // Update provider status on success
@@ -459,10 +361,8 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
       }
 
       // Otherwise, assume it's a short model ID and try to find it
-      for (const [pName, provider] of this.providers) {
-        if (provider.hasModel(options.model)) {
-          return [`${pName}:${options.model}`]
-        }
+      if (this.geminiProvider && this.geminiProvider.hasModel(options.model)) {
+        return [`gemini:${options.model}`]
       }
     }
 
@@ -485,6 +385,29 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
   }
 
   /**
+   * Validate the AIManager configuration.
+   */
+  private validateConfig(config: AIManagerConfig): AIManagerConfig {
+    // Basic validation, more can be added as needed
+    if (!config.providers || config.providers.length === 0) {
+      throw new Error('AIManager configuration must include at least one provider.')
+    }
+
+    // Ensure global defaults are set if not provided
+    const validatedConfig = {
+      ...config,
+      globalTimeout: config.globalTimeout || 30000,
+      globalMaxRetries: config.globalMaxRetries || 3,
+      enableHealthChecks: config.enableHealthChecks ?? true,
+      healthCheckIntervalMs: config.healthCheckIntervalMs || 60000,
+      enableLogging: config.enableLogging ?? true,
+      logLevel: config.logLevel || 'info',
+    }
+
+    return validatedConfig
+  }
+
+  /**
    * Start health check monitoring
    */
   private startHealthChecks(intervalMs: number): void {
@@ -504,42 +427,8 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
   async runHealthChecks(): Promise<HealthCheckResult[]> {
     const results: HealthCheckResult[] = []
 
-    for (const [name, provider] of this.providers) {
-      try {
-        const result = await provider.healthCheck()
-        results.push(result)
-
-        const status = this.providerStatuses.get(name)
-        if (status) {
-          status.healthy = result.healthy
-          status.lastCheck = result.timestamp
-          status.averageLatencyMs = (status.averageLatencyMs + result.latencyMs) / 2
-
-          if (result.healthy) {
-            status.consecutiveFailures = 0
-          } else {
-            status.consecutiveFailures++
-          }
-        }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-        results.push({
-          provider: name,
-          model: 'default',
-          healthy: false,
-          latencyMs: 0,
-          error: errorMessage,
-          timestamp: new Date(),
-        })
-
-        const status = this.providerStatuses.get(name)
-        if (status) {
-          status.healthy = false
-          status.consecutiveFailures++
-        }
-      }
-    }
-
+    // Gemini is checked via completion attempts or we could add a ping here
+    // For now, focusing on the registered provider logic which we simplified
     return results
   }
 
@@ -583,8 +472,8 @@ const DEFAULT_USE_CASE_MODELS_INTERNAL: Record<UseCase, { primary: string; fallb
     }
 
     // Cancel any ongoing requests
-    for (const provider of this.providers.values()) {
-      provider.cancel()
+    if (this.geminiProvider) {
+      // If geminiProvider had a cancel method, we'd call it here
     }
 
     logger.info('AIManager', 'Shutdown complete')
@@ -620,4 +509,4 @@ export function createAIManager(config: AIManagerConfig): AIModelManager {
 }
 
 // Re-export providers for direct use if needed
-export { OpenRouterProvider, GeminiProvider }
+export { GeminiProvider }
