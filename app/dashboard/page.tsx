@@ -50,7 +50,7 @@ export default async function DashboardPage() {
     <div className="space-y-6 container mx-auto px-4 sm:px-6 max-w-7xl">
       <BentoGrid>
         {/* Hero Section - Top Left Priority */}
-        <BentoItem colSpan={{ md: 4, lg: 8 }} className="min-h-[300px]">
+        <BentoItem colSpan={{ md: 6, lg: 8 }} className="min-h-[300px]">
           <HeroSection 
             user={data.user} 
             dailyDigest={data.dailyDigest} 
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
         </BentoItem>
 
         {/* Quick Actions & Stats - Top Right Split */}
-        <BentoItem colSpan={{ md: 2, lg: 4 }} className="min-h-[300px] bg-background border-0 shadow-none hover:shadow-none hover:border-0">
+        <BentoItem colSpan={{ md: 6, lg: 4 }} className="min-h-[300px] bg-background border-0 shadow-none hover:shadow-none hover:border-0">
           <div className="grid grid-rows-2 h-full gap-6">
             <div className="bg-card rounded-xl border border-border/50 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                <QuickActionsWidget />
@@ -75,12 +75,12 @@ export default async function DashboardPage() {
         </BentoItem>
 
         {/* Activity Feed - Bottom Left */}
-        <BentoItem colSpan={{ md: 3, lg: 8 }} className="min-h-[400px]">
+        <BentoItem colSpan={{ md: 6, lg: 8 }} className="min-h-[400px]">
            <ActivityFeed activities={data.recentActivities} />
         </BentoItem>
 
         {/* Applications - Bottom Right */}
-        <BentoItem colSpan={{ md: 3, lg: 4 }} className="min-h-[400px] flex items-center justify-center bg-card/50">
+        <BentoItem colSpan={{ md: 6, lg: 4 }} className="min-h-[400px] flex items-center justify-center bg-card/50">
            <p className="text-muted-foreground">Application Tracker Coming Soon</p>
         </BentoItem>
       </BentoGrid>

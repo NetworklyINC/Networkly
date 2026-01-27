@@ -91,15 +91,17 @@ export default function NetworkPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
           <Tabs defaultValue="all">
-            <TabsList>
-              <TabsTrigger value="all">All ({connections.length})</TabsTrigger>
-              <TabsTrigger value="connected">Connected ({connectedUsers.length})</TabsTrigger>
-              <TabsTrigger value="pending">Pending ({pendingUsers.length})</TabsTrigger>
-              <TabsTrigger value="suggested">
-                <Sparkles className="h-4 w-4 mr-1" />
-                Suggested ({suggestedUsers.length})
-              </TabsTrigger>
-            </TabsList>
+            <div className="w-full overflow-hidden">
+              <TabsList className="w-full flex justify-start overflow-x-auto no-scrollbar scroll-smooth p-1 bg-muted/50 rounded-lg">
+                <TabsTrigger value="all" className="whitespace-nowrap flex-shrink-0">All ({connections.length})</TabsTrigger>
+                <TabsTrigger value="connected" className="whitespace-nowrap flex-shrink-0">Connected ({connectedUsers.length})</TabsTrigger>
+                <TabsTrigger value="pending" className="whitespace-nowrap flex-shrink-0">Pending ({pendingUsers.length})</TabsTrigger>
+                <TabsTrigger value="suggested" className="whitespace-nowrap flex-shrink-0">
+                  <Sparkles className="h-4 w-4 mr-1" />
+                  Suggested ({suggestedUsers.length})
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="all" className="mt-6 space-y-4">
               {filteredConnections(connections).map((connection) => (
