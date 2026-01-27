@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "bun --bun next build",
-    "dev": "bun --bun next dev",
+    "build": "next build",
+    "dev": "next dev",
     "lint": "eslint .",
-    "start": "bun --bun next start",
+    "start": "next start",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
