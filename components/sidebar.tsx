@@ -16,7 +16,7 @@ const navigation = [
   { name: "Profile", href: "/profile", icon: "bx bx-user" },
   { name: "Opportunities", href: "/opportunities", icon: "bx bx-briefcase-alt-2" },
   { name: "Projects", href: "/projects", icon: "bx bx-folder" },
-  { name: "AI Assistant", href: "/assistant", icon: "bx bx-sparkles" },
+  { name: "AI Assistant", href: "/assistant", icon: "bx bx-bot" },
   { name: "Network", href: "/network", icon: "bx bx-group" },
   { name: "Events", href: "/events", icon: "bx bx-calendar" },
   { name: "Analytics", href: "/analytics", icon: "bx bx-bar-chart-alt-2" },
@@ -25,9 +25,11 @@ const navigation = [
 interface SidebarProps {
   isCollapsed?: boolean
   toggleCollapse?: () => void
+  className?: string
+  onClose?: () => void
 }
 
-export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
+export function Sidebar({ isCollapsed = false, toggleCollapse, className, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { user } = useSupabaseUser()
   const { theme } = useTheme()
@@ -47,7 +49,8 @@ export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
     <aside
       className={cn(
         "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border/50 bg-card/80 backdrop-blur-xl transition-all duration-300",
-        isCollapsed ? "w-[80px]" : "w-64"
+        isCollapsed ? "w-[80px]" : "w-64",
+        className
       )}
     >
       <div className={cn("flex h-16 items-center px-6", isCollapsed ? "justify-center px-0" : "gap-3")}>
@@ -75,6 +78,7 @@ export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
             const LinkContent = (
               <Link
                 href={item.href}
+                onClick={onClose}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
@@ -120,6 +124,7 @@ export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
 
         <Link
           href="/settings"
+          onClick={onClose}
           className={cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
             isCollapsed && "justify-center px-0"
