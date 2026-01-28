@@ -32,6 +32,11 @@ export function KnownBugsModal() {
                 if (!response.ok) return
 
                 const text = await response.text()
+                
+                // If the response is HTML (e.g. 404 page), ignore it
+                if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
+                    return
+                }
 
                 // Use content hash as version to detect changes
                 const version = await generateHash(text)
