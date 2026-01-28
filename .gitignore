@@ -34,3 +34,4 @@ ec-scraper/config_hybrid.env
 /data/ai-costs.json
 .env*.local
 *.json
+Networkly-FrontEndMain/
