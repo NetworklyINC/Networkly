@@ -53,21 +53,20 @@ export function Sidebar({ isCollapsed = false, toggleCollapse, className, onClos
         className
       )}
     >
-      <div className={cn("flex h-16 items-center px-6", isCollapsed ? "justify-center px-0" : "gap-3")}>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg overflow-hidden">
+      <div className={cn("flex h-16 items-center px-4", isCollapsed ? "justify-center px-0" : "gap-3")}>
+        {!isCollapsed ? (
           <Image
-            src="/icon.svg"
+            src="/networkly-logo-new.png"
             alt="Networkly"
-            width={32}
-            height={32}
-            className="h-full w-full"
+            width={140}
+            height={50}
+            className="object-contain"
             priority
           />
-        </div>
-        {!isCollapsed && (
-          <span className="text-xl font-bold tracking-tight text-foreground">
-            Networkly
-          </span>
+        ) : (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-lg font-bold text-primary">N</span>
+          </div>
         )}
       </div>
 

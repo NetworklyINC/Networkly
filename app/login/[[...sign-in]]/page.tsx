@@ -89,7 +89,7 @@ export default function LoginPage() {
                         transition={{ duration: 0.8 }}
                     >
                         <div className="flex justify-center mb-12">
-                            <Image src="/icon.svg" alt="Networkly" width={80} height={80} className="shrink-0" />
+                            <Image src="/networkly-logo-new.png" alt="Networkly" width={200} height={80} className="shrink-0" />
                         </div>
                         <h2 className="text-5xl font-bold mb-8 leading-tight">
                             Welcome back to your
@@ -136,7 +136,7 @@ export default function LoginPage() {
                 >
                     {/* Mobile Logo */}
                     <div className="lg:hidden flex justify-center mb-10">
-                        <Image src="/icon.svg" alt="Networkly" width={60} height={60} />
+                        <Image src="/networkly-logo-new.png" alt="Networkly" width={160} height={60} />
                     </div>
 
                     <div className="space-y-3 mb-10">
