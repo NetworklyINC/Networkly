@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
-import { cn } from "@/lib/utils"
+import { WelcomeModal } from "@/components/ui/welcome-modal"
 import type React from "react"
 
 interface AppShellProps {
@@ -19,20 +19,19 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
+      <WelcomeModal />
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         toggleCollapse={toggleSidebar}
-        className="hidden lg:flex"
       />
       <div
-        className={cn(
-          "flex-1 flex flex-col overflow-hidden transition-all duration-300",
-          isSidebarCollapsed ? "lg:ml-[80px]" : "lg:ml-64",
-          "ml-0"
-        )}
+        className="flex-1 flex flex-col overflow-hidden transition-all duration-300"
+        style={{
+          marginLeft: isSidebarCollapsed ? "80px" : "256px",
+        }}
       >
         <Header />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>

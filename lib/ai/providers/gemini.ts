@@ -6,6 +6,7 @@
  */
 
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createVertex } from '@ai-sdk/google-vertex'
 import { generateText, streamText, jsonSchema } from 'ai'
 import type {
   ProviderName,
@@ -16,22 +17,19 @@ import type {
   StreamChunk,
   HealthCheckResult,
   ToolDefinition,
+  VertexConfig,
 } from '../types'
 import { AIProviderError, AuthenticationError } from '../types'
 import { logger } from '../utils/logger'
 import { getCostTracker } from '../utils/cost-tracker'
 
-// Message type for AI SDK
-type AIMessage = {
-  role: 'system' | 'user' | 'assistant'
-  content: string
-}
 
 // Gemini model definitions with pricing (Updated January 2026)
 // https://ai.google.dev/gemini-api/docs/models/gemini
+// Using latest models: gemini-3-flash-preview for heavy tasks, gemini-2.5-flash-lite for cost-effective defaults
 const GEMINI_MODELS: Record<string, Omit<ModelInfo, 'id' | 'provider'>> = {
-  'gemini-2.0-flash': {
-    name: 'Gemini 2.0 Flash',
+  'gemini-2.5-flash': {
+    name: 'Gemini 2.5 Flash',
     contextLength: 1048576,
     maxOutputTokens: 8192,
     capabilities: ['chat', 'vision', 'function-calling', 'json-mode', 'streaming'],
@@ -42,34 +40,10 @@ const GEMINI_MODELS: Record<string, Omit<ModelInfo, 'id' | 'provider'>> = {
     supportsFunctionCalling: true,
     tier: 'standard',
   },
-  'gemini-1.5-pro': {
-    name: 'Gemini 1.5 Pro',
-    contextLength: 1048576,
-    maxOutputTokens: 8192,
-    capabilities: ['chat', 'vision', 'function-calling', 'json-mode', 'streaming'],
-    costPer1kInputTokens: 0.00125,
-    costPer1kOutputTokens: 0.01,
-    supportsStreaming: true,
-    supportsVision: true,
-    supportsFunctionCalling: true,
-    tier: 'premium',
-  },
-  'gemini-1.5-flash': {
-    name: 'Gemini 1.5 Flash',
-    contextLength: 1048576,
-    maxOutputTokens: 8192,
-    capabilities: ['chat', 'vision', 'function-calling', 'json-mode', 'streaming'],
-    costPer1kInputTokens: 0.00015,
-    costPer1kOutputTokens: 0.0006,
-    supportsStreaming: true,
-    supportsVision: true,
-    supportsFunctionCalling: true,
-    tier: 'standard',
-  },
 }
 
-// Default to stable 1.5 Flash for balanced cost/performance
-const DEFAULT_MODEL = 'gemini-2.0-flash'
+// Default to cost-effective 2.5 Flash Lite for balanced cost/performance
+const DEFAULT_MODEL = 'gemini-2.5-flash'
 
 // Map AI SDK finish reasons to our internal format
 function mapFinishReason(reason: string | undefined): 'stop' | 'length' | 'function_call' | 'tool_calls' | 'content_filter' {
@@ -118,25 +92,78 @@ function convertToolChoice(toolChoice: CompletionOptions['toolChoice']): 'auto' 
 export class GeminiProvider {
   private config: ProviderConfig
   private models: Map<string, ModelInfo> = new Map()
-  private googleProvider: ReturnType<typeof createGoogleGenerativeAI>
+  private googleProvider: ReturnType<typeof createGoogleGenerativeAI> | ReturnType<typeof createVertex>
+  private useVertexAI: boolean
 
-  constructor(config: Partial<ProviderConfig> & { apiKey: string }) {
-    const { apiKey, ...restConfig } = config
+  constructor(config: Partial<ProviderConfig> & { apiKey?: string; useVertexAI?: boolean; vertexConfig?: VertexConfig }) {
+    const { apiKey, useVertexAI, vertexConfig, ...restConfig } = config
+
+    // Determine authentication mode
+    this.useVertexAI = useVertexAI ?? true // Default to Vertex AI
+
     this.config = {
       name: 'gemini',
-      apiKey,
+      apiKey: apiKey || '', // May be empty for Vertex AI
       baseUrl: 'https://generativelanguage.googleapis.com',
       defaultModel: restConfig.defaultModel || DEFAULT_MODEL,
       enabled: restConfig.enabled ?? true,
       timeout: restConfig.timeout ?? 60000,
       maxRetries: restConfig.maxRetries ?? 3,
+      useVertexAI: this.useVertexAI,
+      vertexConfig,
       ...restConfig,
     }
 
-    // Create Google provider instance with API key
-    this.googleProvider = createGoogleGenerativeAI({
-      apiKey: this.config.apiKey,
-    })
+    // Initialize provider based on authentication mode
+    if (this.useVertexAI) {
+      // Vertex AI mode - uses Google Cloud authentication
+      const project = vertexConfig?.project || process.env.GOOGLE_VERTEX_PROJECT
+      const location = vertexConfig?.location || process.env.GOOGLE_VERTEX_LOCATION || 'us-central1'
+
+      if (!project) {
+        throw new Error('GOOGLE_VERTEX_PROJECT is required when useVertexAI is true')
+      }
+
+      // Check for JSON credentials in env var (for Vercel deployment)
+      let credentials = vertexConfig?.credentials
+      if (!credentials && process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+        try {
+          const parsed = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)
+          credentials = {
+            client_email: parsed.client_email,
+            private_key: parsed.private_key,
+          }
+        } catch (error) {
+          console.error('[GeminiProvider] Failed to parse GOOGLE_APPLICATION_CREDENTIALS_JSON:', error)
+        }
+      }
+
+      this.googleProvider = createVertex({
+        project,
+        location,
+        googleAuthOptions: credentials ? {
+          credentials,
+        } : {
+          // Use Application Default Credentials (ADC)
+          // This works with: gcloud auth application-default login
+          // Or GOOGLE_APPLICATION_CREDENTIALS env var pointing to JSON file
+          keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+        },
+      })
+
+      logger.info('GeminiProvider', `Initialized with Vertex AI (${project}, ${location})`)
+    } else {
+      // API key mode - traditional Gemini Developer API
+      if (!apiKey) {
+        throw new Error('apiKey is required when useVertexAI is false')
+      }
+
+      this.googleProvider = createGoogleGenerativeAI({
+        apiKey,
+      })
+
+      logger.info('GeminiProvider', 'Initialized with API key authentication')
+    }
 
     this.initializeModels()
   }
@@ -175,7 +202,7 @@ export class GeminiProvider {
    * Complete a chat request
    */
   async complete(options: CompletionOptions): Promise<CompletionResult> {
-    const modelId = options.model || this.config.defaultModel
+    const modelId = DEFAULT_MODEL // Strict enforcement: gemini-2.5-flash
     const startTime = Date.now()
 
     logger.request('gemini', modelId, {
@@ -201,9 +228,9 @@ export class GeminiProvider {
         stopSequences: options.stop,
         tools,
         toolChoice,
-      }) as any)
+      }))
 
-      const text = result.text || ''
+      const text = result.text
       const latencyMs = Date.now() - startTime
 
       // AI SDK uses inputTokens/outputTokens
@@ -212,7 +239,7 @@ export class GeminiProvider {
       const totalTokens = promptTokens + completionTokens
 
       // Convert AI SDK tool calls to OpenAI format
-      const toolCalls = result.toolCalls?.length ? (result.toolCalls as any[]).map(tc => ({
+      const toolCalls = result.toolCalls?.length ? result.toolCalls.map(tc => ({
         id: tc.toolCallId,
         type: 'function' as const,
         function: {
@@ -276,7 +303,7 @@ export class GeminiProvider {
    * Stream a chat completion
    */
   async *stream(options: CompletionOptions): AsyncGenerator<StreamChunk> {
-    const modelId = options.model || this.config.defaultModel
+    const modelId = DEFAULT_MODEL // Strict enforcement: gemini-2.5-flash
     const startTime = Date.now()
 
     logger.request('gemini', modelId, { streaming: true, hasTools: !!options.tools?.length })
@@ -302,15 +329,33 @@ export class GeminiProvider {
       let isFirst = true
       let totalContent = ''
       let promptTokens = this.estimateTokens(options.messages)
+      let hasToolCalls = false
 
-      for await (const text of result.textStream) {
-        if (text) {
-          totalContent += text
+      for await (const part of result.fullStream) {
+        if (part.type === 'text-delta') {
+          totalContent += part.text
           yield {
             id: `gemini-stream-${Date.now()}`,
-            content: text,
+            content: part.text,
             isFirst,
             isLast: false,
+          }
+          isFirst = false
+        } else if (part.type === 'tool-call') {
+          hasToolCalls = true
+          yield {
+            id: `gemini-stream-${Date.now()}`,
+            content: '',
+            isFirst,
+            isLast: false,
+            toolCalls: [{
+              id: part.toolCallId,
+              type: 'function',
+              function: {
+                name: part.toolName,
+                arguments: JSON.stringify(part.input),
+              },
+            }],
           }
           isFirst = false
         }
@@ -335,7 +380,7 @@ export class GeminiProvider {
       yield {
         id: `gemini-stream-${Date.now()}`,
         content: '',
-        finishReason: 'stop',
+        finishReason: hasToolCalls ? 'tool_calls' : 'stop',
         isLast: true,
       }
 
@@ -404,15 +449,48 @@ export class GeminiProvider {
   /**
    * Convert OpenAI-style messages to AI SDK format
    */
-  private convertMessages(messages: CompletionOptions['messages']): AIMessage[] {
+  private convertMessages(messages: any[]): any[] {
     return messages.map((msg) => {
       if (msg.role === 'assistant') {
-        return { role: 'assistant' as const, content: msg.content }
+        const coreMsg: any = { role: 'assistant', content: msg.content || '' }
+
+        // Handle tool calls
+        if (msg.toolCalls && msg.toolCalls.length > 0) {
+          // FIX: Ensure content is strictly a string, even if empty.
+          // The AI SDK schema requires 'content' to be a string, not undefined.
+          coreMsg.content = (msg.content && typeof msg.content === 'string') ? msg.content : ''
+
+          coreMsg.toolCalls = msg.toolCalls.map((tc: any) => ({
+            type: 'function',
+            toolCallId: tc.id || tc.toolCallId,
+            toolName: tc.function.name,
+            args: typeof tc.function.arguments === 'string'
+              ? JSON.parse(tc.function.arguments || '{}')
+              : tc.function.arguments,
+          }))
+        }
+        return coreMsg
       }
+
       if (msg.role === 'system') {
-        return { role: 'system' as const, content: msg.content }
+        return { role: 'system', content: msg.content }
       }
-      return { role: 'user' as const, content: msg.content }
+
+      if (msg.role === 'function') {
+        // Map legacy function role to tool role
+        return {
+          role: 'tool',
+          content: [{
+            type: 'tool-result',
+            toolCallId: msg.toolCallId || 'unknown',
+            toolName: msg.name,
+            result: msg.content, // AI SDK Core expects 'result' to be the output
+          }]
+        }
+      }
+
+      // Default to user message
+      return { role: 'user', content: msg.content }
     })
   }
 

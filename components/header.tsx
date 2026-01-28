@@ -1,11 +1,9 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { Bell, Search, MessageCircle, Plus, X } from "lucide-react"
+import { Bell, Search, MessageCircle, Plus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -21,7 +19,6 @@ import { useHasMounted } from "@/hooks/use-has-mounted"
 import { SearchResultsDropdown } from "@/components/search/search-results-dropdown"
 import { globalSearch, type SearchResults } from "@/app/actions/search"
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback"
-import { MobileNav } from "@/components/mobile-nav"
 
 export function Header() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -88,24 +85,23 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/50 bg-card/80 backdrop-blur-xl px-6">
-      <MobileNav />
-      <div className={cn("flex-1 max-w-md search-container transition-all duration-300", 
-        isSearchOpen ? "absolute inset-x-0 top-0 z-50 h-16 bg-background px-4 flex items-center" : "relative hidden md:flex"
-      )}>
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
-          <Input
-            type="search"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-10 bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary w-full"
-            autoFocus={isSearchOpen}
-          />
-        </div>
-        
+      <div className="relative flex-1 max-w-md search-container">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
+        <Input
+          type="search"
+          placeholder="Search people, opportunities, projects..."
+          value={searchQuery}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          onFocus={() => {
+            if (searchQuery.trim().length >= 2) {
+              setIsSearchOpen(true)
+            }
+          }}
+          className="pl-10 bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary"
+        />
+
         <SearchResultsDropdown
-          isOpen={isSearchOpen && searchQuery.length >= 2}
+          isOpen={isSearchOpen}
           isLoading={isSearching}
           results={searchResults}
           onClose={handleCloseSearch}
@@ -115,46 +111,9 @@ export function Header() {
             setSearchResults(null)
           }}
         />
-        
-        {isSearchOpen && (
-           <Button variant="ghost" size="icon" className="ml-2 md:hidden" onClick={() => setIsSearchOpen(false)}>
-             <X className="h-5 w-5" />
-           </Button>
-        )}
       </div>
 
-      {!isSearchOpen && (
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="md:hidden text-muted-foreground"
-          onClick={() => setIsSearchOpen(true)}
-        >
-          <Search className="h-5 w-5" />
-        </Button>
-      )}
-
-      <div className="flex-1" />
-
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-          <Plus className="h-4 w-4" />
-          <span className="hidden sm:inline">Create</span>
-        </Button>
-
-        <Button variant="ghost" size="icon" className="relative">
-          <MessageCircle className="h-5 w-5" />
-          <Badge className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs" variant="destructive">
-            3
-          </Badge>
-        </Button>
-
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <Badge className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs" variant="destructive">
-            5
-          </Badge>
-        </Button>
 
         {hasMounted && (
           <DropdownMenu>
@@ -174,15 +133,9 @@ export function Header() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/profile" className="w-full cursor-pointer">View Profile</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings" className="w-full cursor-pointer">Settings</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings" className="w-full cursor-pointer">Help & Support</Link>
-              </DropdownMenuItem>
+              <DropdownMenuItem>View Profile</DropdownMenuItem>
+              <DropdownMenuItem>Settings</DropdownMenuItem>
+              <DropdownMenuItem>Help & Support</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive"

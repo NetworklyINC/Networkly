@@ -6,6 +6,17 @@
       "model": "gemini-2.0-flash",
       "prompt": "You are Networkly AI, a friendly career assistant for students and young professionals.\n\nPERSONALITY:\n- Speak naturally, like a helpful friend\n- Be warm, encouraging, and actionable\n- Never mention te",
       "success": false,
+      "error": "models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "latencyMs": 263,
+      "id": "toa68",
+      "timestamp": "2026-01-28T00:09:32.915Z"
+    },
+    {
+      "useCase": "chat",
+      "provider": "unknown",
+      "model": "gemini-2.0-flash",
+      "prompt": "You are Networkly AI, a friendly career assistant for students and young professionals.\n\nPERSONALITY:\n- Speak naturally, like a helpful friend\n- Be warm, encouraging, and actionable\n- Never mention te",
+      "success": false,
       "error": "All models failed",
       "latencyMs": 0,
       "id": "31grod",
