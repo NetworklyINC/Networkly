@@ -183,7 +183,7 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6 container mx-auto px-4 sm:px-6 max-w-7xl py-6">
+      <div className="space-y-6 container mx-auto px-4 sm:px-6 max-w-7xl">
         <div className="flex items-center justify-center min-h-[400px]">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -192,14 +192,14 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="space-y-6 container mx-auto px-4 sm:px-6 max-w-7xl py-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 container mx-auto px-4 sm:px-6 max-w-7xl">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Project Showcase</h1>
           <p className="text-muted-foreground">Share your work and find collaborators</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 sm:w-64">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap md:flex-nowrap">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search projects..."
@@ -208,41 +208,45 @@ export default function ProjectsPage() {
               className="pl-10"
             />
           </div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[180px]">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {PROJECT_CATEGORIES.map((cat) => (
-                <SelectItem key={cat.value} value={cat.value}>
-                  {cat.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button onClick={() => setIsCreateOpen(true)} className="gap-1">
-            <Plus className="h-4 w-4" />
-            New Project
-          </Button>
+          <div className="flex gap-2">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {PROJECT_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={() => setIsCreateOpen(true)} className="gap-1 whitespace-nowrap flex-1 sm:flex-none">
+              <Plus className="h-4 w-4" />
+              New Project
+            </Button>
+          </div>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-4">
         <div className="lg:col-span-3 space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="my-projects">My Projects ({myProjects.length})</TabsTrigger>
-              <TabsTrigger value="discover">
-                <Sparkles className="h-4 w-4 mr-1" />
-                Discover ({discoverProjects.length})
-              </TabsTrigger>
-              <TabsTrigger value="looking-for-help">
-                <Users className="h-4 w-4 mr-1" />
-                Looking for Help ({helpProjects.length})
-              </TabsTrigger>
-            </TabsList>
+            <div className="w-full overflow-hidden">
+              <TabsList className="w-full flex justify-start overflow-x-auto no-scrollbar scroll-smooth h-auto p-1 bg-muted/50 rounded-lg">
+                <TabsTrigger value="my-projects" className="whitespace-nowrap flex-shrink-0">My Projects ({myProjects.length})</TabsTrigger>
+                <TabsTrigger value="discover" className="whitespace-nowrap flex-shrink-0">
+                  <Sparkles className="h-4 w-4 mr-1" />
+                  Discover ({discoverProjects.length})
+                </TabsTrigger>
+                <TabsTrigger value="looking-for-help" className="whitespace-nowrap flex-shrink-0">
+                  <Users className="h-4 w-4 mr-1" />
+                  Looking for Help ({helpProjects.length})
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="my-projects" className="mt-6">
               {filteredProjects(myProjects).length === 0 ? (

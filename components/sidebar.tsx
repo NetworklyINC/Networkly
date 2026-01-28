@@ -4,20 +4,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
-import {
-  Home,
-  User,
-  Briefcase,
-  FolderKanban,
-  MessageSquare,
-  Calendar,
-  BarChart3,
-  Settings,
-  Sparkles,
-  ChevronLeft,
-  ChevronRight,
-  GraduationCap
-} from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useSupabaseUser } from "@/hooks/use-supabase-user"
 import { Button } from "@/components/ui/button"
@@ -26,26 +12,27 @@ import { useTheme } from "next-themes"
 import { useHasMounted } from "@/hooks/use-has-mounted"
 
 const navigation = [
-  { name: "Home", href: "/dashboard", icon: Home },
-  { name: "Profile", href: "/profile", icon: User },
-  { name: "Opportunities", href: "/opportunities", icon: Briefcase },
-  { name: "Projects", href: "/projects", icon: FolderKanban },
-  { name: "AI Assistant", href: "/assistant", icon: Sparkles },
-  { name: "Network", href: "/network", icon: MessageSquare },
-  { name: "Mentors", href: "/mentors", icon: GraduationCap },
-  { name: "Events", href: "/events", icon: Calendar },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Home", href: "/dashboard", icon: "bx bx-home-alt-2" },
+  { name: "Profile", href: "/profile", icon: "bx bx-user" },
+  { name: "Opportunities", href: "/opportunities", icon: "bx bx-briefcase-alt-2" },
+  { name: "Projects", href: "/projects", icon: "bx bx-folder" },
+  { name: "AI Assistant", href: "/assistant", icon: "bx bx-bot" },
+  { name: "Network", href: "/network", icon: "bx bx-group" },
+  { name: "Events", href: "/events", icon: "bx bx-calendar" },
+  { name: "Analytics", href: "/analytics", icon: "bx bx-bar-chart-alt-2" },
 ]
 
 interface SidebarProps {
   isCollapsed?: boolean
   toggleCollapse?: () => void
+  className?: string
+  onClose?: () => void
 }
 
-export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
+export function Sidebar({ isCollapsed = false, toggleCollapse, className, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { user } = useSupabaseUser()
-  const { resolvedTheme } = useTheme()
+  const { theme } = useTheme()
   const hasMounted = useHasMounted()
 
 
@@ -57,47 +44,40 @@ export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
   const userAvatar = (user?.user_metadata?.avatar_url as string | undefined) || "/placeholder.svg"
   const userInitials = userName.split(" ").map(n => n[0]).join("").toUpperCase()
 
-  // Full logo for expanded sidebar
-  const logoSrc = hasMounted && resolvedTheme === 'dark' ? '/networkly-logo-dark.png' : '/networkly-logo.png'
-  // Mini logo for collapsed sidebar
-  const logoMiniSrc = hasMounted && resolvedTheme === 'dark' ? '/networkly-logo-mini-dark.png' : '/networkly-logo-mini.png'
 
   return (
     <aside
       className={cn(
         "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border/50 bg-card/80 backdrop-blur-xl transition-all duration-300",
-        isCollapsed ? "w-[80px]" : "w-64"
+        isCollapsed ? "w-[80px]" : "w-64",
+        className
       )}
     >
-      <div className={cn("flex h-16 items-center border-b border-border px-6", isCollapsed ? "justify-center px-0" : "gap-2")}>
+      <div className={cn("flex h-16 items-center px-4", isCollapsed ? "justify-center px-0" : "gap-3")}>
         {!isCollapsed ? (
           <Image
-            src={logoSrc}
+            src="/networkly-logo-new.png"
             alt="Networkly"
-            width={120}
-            height={40}
+            width={140}
+            height={50}
             className="object-contain"
             priority
           />
         ) : (
-          <Image
-            src={logoMiniSrc}
-            alt="Networkly"
-            width={40}
-            height={40}
-            className="object-contain"
-            priority
-          />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <span className="text-lg font-bold text-primary">N</span>
+          </div>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        <nav className="flex flex-col gap-1">
+      <div className="flex-1 overflow-y-auto px-4 py-20 flex flex-col justify-center">
+        <nav className="flex flex-col gap-3">
           {navigation.map((item) => {
             const isActive = pathname === item.href
             const LinkContent = (
               <Link
                 href={item.href}
+                onClick={onClose}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
@@ -106,7 +86,7 @@ export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
                   isCollapsed && "justify-center px-0"
                 )}
               >
-                <item.icon className="h-5 w-5 shrink-0" />
+                <i className={cn(item.icon, "text-xl shrink-0")} />
                 {!isCollapsed && <span>{item.name}</span>}
               </Link>
             )
@@ -137,18 +117,19 @@ export function Sidebar({ isCollapsed = false, toggleCollapse }: SidebarProps) {
             className="w-full flex items-center justify-center h-8 hover:bg-muted"
             onClick={toggleCollapse}
           >
-            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {isCollapsed ? <i className='bx bx-chevron-right text-lg' /> : <i className='bx bx-chevron-left text-lg' />}
           </Button>
         )}
 
         <Link
           href="/settings"
+          onClick={onClose}
           className={cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
             isCollapsed && "justify-center px-0"
           )}
         >
-          <Settings className="h-5 w-5 shrink-0" />
+          <i className="bx bx-cog text-xl shrink-0" />
           {!isCollapsed && "Settings"}
         </Link>
 
