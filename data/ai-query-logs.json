@@ -3,6 +3,83 @@
     {
       "useCase": "chat",
       "provider": "unknown",
+      "model": "gemini-2.0-flash",
+      "prompt": "You are Networkly AI, a friendly career assistant for students and young professionals.\n\nPERSONALITY:\n- Speak naturally, like a helpful friend\n- Be warm, encouraging, and actionable\n- Never mention te",
+      "success": false,
+      "error": "All models failed",
+      "latencyMs": 0,
+      "id": "31grod",
+      "timestamp": "2026-01-27T17:16:46.252Z"
+    },
+    {
+      "useCase": "chat",
+      "provider": "unknown",
+      "model": "gemini-2.0-flash",
+      "prompt": "You are Networkly AI, a friendly career assistant for students and young professionals.\n\nPERSONALITY:\n- Speak naturally, like a helpful friend\n- Be warm, encouraging, and actionable\n- Never mention te",
+      "success": false,
+      "error": "All models failed",
+      "latencyMs": 1,
+      "id": "4t42x3",
+      "timestamp": "2026-01-27T17:16:42.546Z"
+    },
+    {
+      "useCase": "chat",
+      "provider": "unknown",
+      "model": "gemini-2.0-flash",
+      "prompt": "You are Networkly AI, a friendly career assistant for students and young professionals.\n\nPERSONALITY:\n- Speak naturally, like a helpful friend\n- Be warm, encouraging, and actionable\n- Never mention te",
+      "success": false,
+      "error": "All models failed",
+      "latencyMs": 0,
+      "id": "4u6v4o",
+      "timestamp": "2026-01-27T17:16:40.157Z"
+    },
+    {
+      "useCase": "chat",
+      "provider": "unknown",
+      "model": "gemini-2.0-flash",
+      "prompt": "You are Networkly AI, a friendly career assistant for students and young professionals.\n\nPERSONALITY:\n- Speak naturally, like a helpful friend\n- Be warm, encouraging, and actionable\n- Never mention te",
+      "success": false,
+      "error": "models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "latencyMs": 201,
+      "id": "ncllp9",
+      "timestamp": "2026-01-27T17:16:10.744Z"
+    },
+    {
+      "useCase": "chat",
+      "provider": "unknown",
+      "model": "gemini-2.0-flash",
+      "prompt": "You are Networkly AI, a friendly career assistant for students and young professionals.\n\nPERSONALITY:\n- Speak naturally, like a helpful friend\n- Be warm, encouraging, and actionable\n- Never mention te",
+      "success": false,
+      "error": "models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "latencyMs": 275,
+      "id": "6u1yr",
+      "timestamp": "2026-01-27T14:33:45.648Z"
+    },
+    {
+      "useCase": "chat",
+      "provider": "unknown",
+      "model": "gemini-2.0-flash",
+      "prompt": "You are Networkly AI, a friendly career assistant for students and young professionals.\n\nPERSONALITY:\n- Speak naturally, like a helpful friend\n- Be warm, encouraging, and actionable\n- Never mention te",
+      "success": false,
+      "error": "models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "latencyMs": 154,
+      "id": "qt5jcd",
+      "timestamp": "2026-01-27T00:16:22.686Z"
+    },
+    {
+      "useCase": "chat",
+      "provider": "unknown",
+      "model": "gemini-2.0-flash",
+      "prompt": "You are Networkly AI, a friendly career assistant for students and young professionals.\n\nPERSONALITY:\n- Speak naturally, like a helpful friend\n- Be warm, encouraging, and actionable\n- Never mention te",
+      "success": false,
+      "error": "models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.",
+      "latencyMs": 373,
+      "id": "vulvbn",
+      "timestamp": "2026-01-27T00:15:35.646Z"
+    },
+    {
+      "useCase": "chat",
+      "provider": "unknown",
       "model": "gemini-2.5-flash-lite",
       "prompt": "You are Networkly AI, a friendly career assistant for students and young professionals.\n\nPERSONALITY:\n- Speak naturally, like a helpful friend\n- Be warm, encouraging, and actionable\n- Never mention te",
       "success": false,

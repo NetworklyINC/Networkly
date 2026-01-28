@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
+import { cn } from "@/lib/utils"
 import type React from "react"
 
 interface AppShellProps {
@@ -21,12 +22,14 @@ export function AppShell({ children }: AppShellProps) {
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         toggleCollapse={toggleSidebar}
+        className="hidden lg:flex"
       />
       <div
-        className="flex-1 flex flex-col overflow-hidden transition-all duration-300"
-        style={{
-          marginLeft: isSidebarCollapsed ? "80px" : "256px",
-        }}
+        className={cn(
+          "flex-1 flex flex-col overflow-hidden transition-all duration-300",
+          isSidebarCollapsed ? "lg:ml-[80px]" : "lg:ml-64",
+          "ml-0"
+        )}
       >
         <Header />
         <main className="flex-1 overflow-y-auto p-6">

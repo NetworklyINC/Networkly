@@ -105,7 +105,7 @@ export function ProjectUpdatesFeed() {
           )
         })}
 
-        <div className="pt-2 border-t border-border">
+        <div className="pt-2 pb-2 border-t border-border">
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <i className="bx bx-brain text-sm" />
             AI tracks your project progress automatically
